@@ -2,6 +2,7 @@ mod chip8;
 mod cpu;
 mod display;
 mod memory;
+mod opcode;
 
 use chip8::Chip8;
 use std::fs::File;

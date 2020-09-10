@@ -10,6 +10,10 @@ impl Display {
         }
     }
 
+    pub fn clear(&mut self) {
+        self.image = Box::new(vec![vec![0; 64]; 32]);
+    }
+
     pub fn draw(&mut self, x: u8, y: u8, bytes: Vec<u8>, v_flag: &mut bool) {
         for byte_pos in 0..bytes.len() {
             let y = (y as usize + byte_pos) % 32;
