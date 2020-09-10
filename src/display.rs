@@ -23,8 +23,6 @@ impl Display {
                 self.image[y][x] ^= draw;
             }
         }
-
-        self.print();
     }
 
     fn print(&self) {

@@ -1,5 +1,6 @@
 use super::display;
 use super::memory;
+use super::chip8;
 
 #[derive(Debug, Default)]
 pub struct Cpu {
@@ -9,7 +10,11 @@ pub struct Cpu {
     reg_delay: u8,
     reg_pc: u16,
     reg_sp: u8,
-    stack: [u16; 16],
+    stack: [u16; 16]
+}
+
+pub struct ProgramChange {
+    pub redraw: bool
 }
 
 impl Cpu {
@@ -40,7 +45,7 @@ impl Cpu {
         (value & 0x00FF) as u8
     }
 
-    pub fn step(&mut self, memory: &mut memory::Memory, display: &mut display::Display) {
+    pub fn step(&mut self, memory: &mut memory::Memory, display: &mut display::Display) -> ProgramChange {
         let instruction = memory.read_doublebyte(self.reg_pc);
         let nibbles = (
             (instruction & 0xF000) >> 12 as u8,
@@ -48,6 +53,8 @@ impl Cpu {
             (instruction & 0x00F0) >> 4 as u8,
             (instruction & 0x000F) as u8,
         );
+
+        let mut program_change = ProgramChange { redraw: false };
 
         let program_counter = match nibbles {
             (0x00, 0x00, 0x0E, 0x0E) => self.ret(),
@@ -60,13 +67,15 @@ impl Cpu {
             }
             (0x08, _, _, 0x00) => self.ld_vx_vy(Cpu::read_x(instruction), Cpu::read_y(instruction)),
             (0x0A, _, _, _) => self.ld_i_addr(Cpu::read_nnn(instruction)),
-            (0x0D, _, _, _) => self.drw_vx_vy_nibble(
+            (0x0D, _, _, _) => {
+                program_change.redraw = true;
+                self.drw_vx_vy_nibble(
                 Cpu::read_x(instruction),
                 Cpu::read_y(instruction),
                 Cpu::read_n(instruction),
                 memory,
                 display,
-            ),
+            )},
             (0x0E, _, 0x0A, 0x01) => self.sknp_vx(Cpu::read_x(instruction)),
             (0x0F, _, 0x01, 0x0E) => self.add_i_vx(Cpu::read_x(instruction)),
             (0x0F, _, 0x06, 0x05) => self.ld_vx_i(Cpu::read_x(instruction), memory),
@@ -79,7 +88,9 @@ impl Cpu {
             ProgramCounter::Skip => self.reg_pc += 4,
         };
 
-        std::thread::sleep(std::time::Duration::from_millis(10));
+        program_change
+
+        // std::thread::sleep(std::time::Duration::from_millis(10));
     }
 
     fn jp_addr(&mut self, addr: u16) -> ProgramCounter {
@@ -132,6 +143,8 @@ impl Cpu {
             &mut set_vflag,
         );
 
+        self.reg_gp[0xF] = set_vflag as u8; 
+
         ProgramCounter::Next
     }
 
@@ -146,7 +159,7 @@ impl Cpu {
     }
 
     fn sknp_vx(&mut self, x: u8) -> ProgramCounter {
-        let pressed = false;
+        let pressed = true;
         if pressed == false {
             return ProgramCounter::Skip;
         }
