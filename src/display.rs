@@ -1,17 +1,17 @@
 #[derive(Debug, Default)]
 pub struct Display {
-    pub image: Box<Vec<Vec<u8>>>,
+    pub framebuffer: Box<Vec<u32>>,
 }
 
 impl Display {
     pub fn new() -> Self {
         Display {
-            image: Box::new(vec![vec![0; 64]; 32]),
+            framebuffer: Box::new(vec![0; 64 * 32]),
         }
     }
 
     pub fn clear(&mut self) {
-        self.image = Box::new(vec![vec![0; 64]; 32]);
+        self.framebuffer = Box::new(vec![0; 64 * 32]);
     }
 
     pub fn draw(&mut self, x: u8, y: u8, bytes: Vec<u8>, v_flag: &mut bool) {
@@ -19,27 +19,21 @@ impl Display {
             let y = (y as usize + byte_pos) % 32;
             for bit_pos in 0..8 {
                 let x = (x as usize + bit_pos) % 64;
+                let buffer_pos = (y * 64) + x as usize;
                 let draw = (bytes[byte_pos] >> (7 - bit_pos)) & 1;
 
-                if draw == 1 && self.image[y][x] == 0b1 {
+                if draw == 1 && self.framebuffer[buffer_pos] != 0 {
                     *v_flag = true;
                 }
-                self.image[y][x] ^= draw;
-            }
-        }
-    }
-
-    fn print(&self) {
-        print!("{}[2J", 27 as char);
-        for row in self.image.iter() {
-            for column in row.iter() {
-                if *column == 1 {
-                    print!("#");
+                let currently_active = if self.framebuffer[buffer_pos] != 0 {
+                    1
                 } else {
-                    print!(" ");
-                }
+                    0
+                } as u8;
+                let new_state = currently_active ^ draw;
+
+                self.framebuffer[buffer_pos] = if new_state == 1 { 0x00FFFFFF } else { 0 };
             }
-            println!();
         }
     }
 }

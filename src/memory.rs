@@ -34,8 +34,8 @@ impl Memory {
         let mut chunk = vec![0; size];
 
         for i in 0..size {
-            chunk[i] = self.ram[(address as usize) + size];
-            println!("{:#010b}", chunk[i]);
+            chunk[i] = self.ram[(address as usize) + i];
+            // println!("{:#X?}: {:#010b}", (address as usize) + i, chunk[i]);
         }
 
         chunk

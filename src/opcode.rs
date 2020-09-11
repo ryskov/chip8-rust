@@ -14,6 +14,8 @@ pub enum Opcode {
   SKNP { x: u8 },
   ADDI_R { x: u8 },
   LD_M { x: u8 },
+  SET_DT { x: u8 },
+  LD_DT { x: u8 },
 }
 
 impl Opcode {
@@ -79,6 +81,12 @@ impl Opcode {
         size: Opcode::read_n(instruction),
       },
       (0x0E, _, 0x0A, 0x01) => Opcode::SKNP {
+        x: Opcode::read_x(instruction),
+      },
+      (0x0F, _, 0x00, 0x07) => Opcode::LD_DT {
+        x: Opcode::read_x(instruction),
+      },
+      (0x0F, _, 0x01, 0x05) => Opcode::SET_DT {
         x: Opcode::read_x(instruction),
       },
       (0x0F, _, 0x01, 0x0E) => Opcode::ADDI_R {

@@ -31,26 +31,6 @@ impl Cpu {
         cpu
     }
 
-    fn read_nnn(value: u16) -> u16 {
-        value & 0x0FFF
-    }
-
-    fn read_n(value: u16) -> u8 {
-        (value & 0x000F) as u8
-    }
-
-    fn read_x(value: u16) -> u8 {
-        ((value >> 8) & 0b1111) as u8
-    }
-
-    fn read_y(value: u16) -> u8 {
-        ((value >> 4) & 0b1111) as u8
-    }
-
-    fn read_kk(value: u16) -> u8 {
-        (value & 0x00FF) as u8
-    }
-
     pub fn step(
         &mut self,
         memory: &mut memory::Memory,
@@ -58,52 +38,35 @@ impl Cpu {
     ) -> ProgramChange {
         let instruction = memory.read_doublebyte(self.reg_pc);
         let opcode = Opcode::decode(instruction);
-        let nibbles = (
-            (instruction & 0xF000) >> 12 as u8,
-            (instruction & 0x0F00) >> 8 as u8,
-            (instruction & 0x00F0) >> 4 as u8,
-            (instruction & 0x000F) as u8,
-        );
 
         let mut program_change = ProgramChange { redraw: false };
 
-        print!("{:#X?} - {:#X?}: {:x?}", self.reg_pc, instruction, opcode);
-        pause();
+        // print!("{:#X?} - {:#X?}: {:x?}", self.reg_pc, instruction, opcode);
+        // pause();
 
-        // match opcode {
-        //     Opcode::CALL { addr } => self.call_addr(addr),
-        //     _ => panic!()
-        // };
-
-        let program_counter = match nibbles {
-            (0x00, 0x00, 0x0E, 0x00) => {
+        let program_counter = match opcode {
+            Opcode::CALL { addr } => {
                 program_change.redraw = true;
-                self.cls(display)
+                self.call_addr(addr)
             }
-            (0x00, 0x00, 0x0E, 0x0E) => self.ret(),
-            (0x01, _, _, _) => self.jp_addr(Cpu::read_nnn(instruction)),
-            (0x02, _, _, _) => self.call_addr(Cpu::read_nnn(instruction)),
-            (0x03, _, _, _) => self.se_vx_byte(Cpu::read_x(instruction), Cpu::read_kk(instruction)),
-            (0x06, _, _, _) => self.ld_vx_byte(Cpu::read_x(instruction), Cpu::read_kk(instruction)),
-            (0x07, _, _, _) => {
-                self.add_vx_byte(Cpu::read_x(instruction), Cpu::read_kk(instruction))
-            }
-            (0x08, _, _, 0x00) => self.ld_vx_vy(Cpu::read_x(instruction), Cpu::read_y(instruction)),
-            (0x0A, _, _, _) => self.ld_i_addr(Cpu::read_nnn(instruction)),
-            (0x0D, _, _, _) => {
+            Opcode::CLS => self.cls(display),
+            Opcode::RET => self.ret(),
+            Opcode::JP { addr } => self.jp_addr(addr),
+            Opcode::SE { x, byte } => self.se_vx_byte(x, byte),
+            Opcode::LD_IMM { x, byte } => self.ld_vx_byte(x, byte),
+            Opcode::ADD { x, byte } => self.add_vx_byte(x, byte),
+            Opcode::LD_R { x, y } => self.ld_vx_vy(x, y),
+            Opcode::LDI_IMM { addr } => self.ld_i_addr(addr),
+            Opcode::DRW { x, y, size } => {
                 program_change.redraw = true;
-                self.drw_vx_vy_nibble(
-                    Cpu::read_x(instruction),
-                    Cpu::read_y(instruction),
-                    Cpu::read_n(instruction),
-                    memory,
-                    display,
-                )
+                self.drw_vx_vy_nibble(x, y, size, memory, display)
             }
-            (0x0E, _, 0x0A, 0x01) => self.sknp_vx(Cpu::read_x(instruction)),
-            (0x0F, _, 0x01, 0x0E) => self.add_i_vx(Cpu::read_x(instruction)),
-            (0x0F, _, 0x06, 0x05) => self.ld_vx_i(Cpu::read_x(instruction), memory),
-            _ => panic!("Unrecognized instruction {:#x?} {:#x?}", instruction, self),
+            Opcode::SKNP { x } => self.sknp_vx(x),
+            Opcode::ADDI_R { x } => self.add_i_vx(x),
+            Opcode::LD_M { x } => self.ld_vx_i(x, memory),
+            Opcode::SET_DT { x } => self.set_dt(x),
+            Opcode::LD_DT { x } => self.ld_dt(x),
+            _ => panic!(),
         };
 
         match program_counter {
@@ -112,9 +75,13 @@ impl Cpu {
             ProgramCounter::Skip => self.reg_pc += 4,
         };
 
-        println!("I: {:#X?} GP: {:X?}", self.reg_i, self.reg_gp);
+        // println!("I: {:#X?} GP: {:X?}", self.reg_i, self.reg_gp);
 
-        std::thread::sleep(std::time::Duration::from_millis(10));
+        if self.reg_delay > 0 {
+            self.reg_delay -= 1;
+        }
+        // std::thread::sleep(std::time::Duration::from_millis(10));
+
         program_change
     }
 
@@ -200,11 +167,21 @@ impl Cpu {
         ProgramCounter::Next
     }
 
+    fn set_dt(&mut self, x: u8) -> ProgramCounter {
+        self.reg_delay = self.reg_gp[x as usize];
+        ProgramCounter::Next
+    }
+
+    fn ld_dt(&mut self, x: u8) -> ProgramCounter {
+        self.reg_gp[x as usize] = self.reg_delay;
+        ProgramCounter::Next
+    }
+
     fn ret(&mut self) -> ProgramCounter {
         let addr = self.stack[self.reg_sp as usize - 1];
         self.reg_sp -= 1;
 
-        ProgramCounter::Jump(addr)
+        ProgramCounter::Jump(addr + 2)
     }
 
     fn cls(&mut self, display: &mut display::Display) -> ProgramCounter {

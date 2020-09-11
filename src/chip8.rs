@@ -26,35 +26,13 @@ impl Chip8 {
     }
 
     pub fn run(&mut self) {
-        let mut vbuffer = vec![0; 64 * 32];
-        self.draw(&mut vbuffer);
         loop {
             let program_change = self.cpu.step(&mut self.memory, &mut self.display);
             if program_change.redraw {
-                self.draw(&mut vbuffer);
+                self.window
+                    .update_with_buffer(&self.display.framebuffer, 64, 32)
+                    .unwrap();
             }
         }
     }
-
-    fn draw(&mut self, vbuffer: &mut Vec<u32>) {
-        for y in 0..32 {
-            for x in 0..64 {
-                let draw_pixel = self.display.image[y][x] == 0b1;
-                if draw_pixel {
-                    vbuffer[(y * 64) + x] = 0xFFFFFFFF;
-                } else {
-                    vbuffer[(y * 64) + x] = 0x0;
-                }
-            }
-        }
-        self.window.update_with_buffer(&vbuffer, 64, 32).unwrap();
-    }
-}
-
-use std::io::{stdin, stdout, Read, Write};
-fn pause() {
-    let mut stdout = stdout();
-    stdout.flush().unwrap();
-    stdin().read(&mut [0]).unwrap();
-    print!("{}[2J", 27 as char);
 }
