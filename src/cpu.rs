@@ -69,8 +69,17 @@ impl Cpu {
 
         print!("{:#X?} - {:#X?}: {:x?}", self.reg_pc, instruction, opcode);
         pause();
+
+        // match opcode {
+        //     Opcode::CALL { addr } => self.call_addr(addr),
+        //     _ => panic!()
+        // };
+
         let program_counter = match nibbles {
-            (0x00, 0x00, 0x0E, 0x00) => self.cls(display),
+            (0x00, 0x00, 0x0E, 0x00) => {
+                program_change.redraw = true;
+                self.cls(display)
+            }
             (0x00, 0x00, 0x0E, 0x0E) => self.ret(),
             (0x01, _, _, _) => self.jp_addr(Cpu::read_nnn(instruction)),
             (0x02, _, _, _) => self.call_addr(Cpu::read_nnn(instruction)),

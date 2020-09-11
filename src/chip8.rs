@@ -27,27 +27,27 @@ impl Chip8 {
 
     pub fn run(&mut self) {
         let mut vbuffer = vec![0; 64 * 32];
+        self.draw(&mut vbuffer);
         loop {
-            
             let program_change = self.cpu.step(&mut self.memory, &mut self.display);
-            
-            if (program_change.redraw) {
-
-                let mut y = 0;
-                let mut x = 0;
-                for y in 0..32 {
-                    for x in 0..64 {
-                        let draw_pixel = self.display.image[y][x] == 0b1;
-                        if draw_pixel {
-                            vbuffer[(y * 64) + x] = 0xFFFFFFFF;
-                        } else {
-                            vbuffer[(y * 64) + x] = 0x0;
-                        }
-                    }
-                }
-                self.window.update_with_buffer(&vbuffer, 64, 32).unwrap();
+            if program_change.redraw {
+                self.draw(&mut vbuffer);
             }
         }
+    }
+
+    fn draw(&mut self, vbuffer: &mut Vec<u32>) {
+        for y in 0..32 {
+            for x in 0..64 {
+                let draw_pixel = self.display.image[y][x] == 0b1;
+                if draw_pixel {
+                    vbuffer[(y * 64) + x] = 0xFFFFFFFF;
+                } else {
+                    vbuffer[(y * 64) + x] = 0x0;
+                }
+            }
+        }
+        self.window.update_with_buffer(&vbuffer, 64, 32).unwrap();
     }
 }
 

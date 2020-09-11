@@ -6,8 +6,13 @@ mod opcode;
 
 use chip8::Chip8;
 use std::fs::File;
+use std::io;
 use std::io::Read;
 use std::path::Path;
+use tui::backend::CrosstermBackend;
+use tui::layout::{Constraint, Direction, Layout};
+use tui::widgets::{Block, Borders, Widget};
+use tui::Terminal;
 
 use minifb::{Window, WindowOptions};
 const WIDTH: usize = 64;
@@ -27,6 +32,29 @@ fn main() {
 
     // Limit to max ~60 fps update rate
     window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
+    let stdout = io::stdout();
+    let backend = CrosstermBackend::new(stdout);
+    let mut terminal = Terminal::new(backend).unwrap();
+    terminal
+        .draw(|f| {
+            let chunks = Layout::default()
+                .direction(Direction::Vertical)
+                .margin(1)
+                .constraints(
+                    [
+                        Constraint::Percentage(10),
+                        Constraint::Percentage(80),
+                        Constraint::Percentage(10),
+                    ]
+                    .as_ref(),
+                )
+                .split(f.size());
+            let block = Block::default().title("Block").borders(Borders::ALL);
+            f.render_widget(block, chunks[0]);
+            let block = Block::default().title("Block 2").borders(Borders::ALL);
+            f.render_widget(block, chunks[1]);
+        })
+        .unwrap();
 
     let mut chip8 = Chip8::new(program, window);
     chip8.run();
