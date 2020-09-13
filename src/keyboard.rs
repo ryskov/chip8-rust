@@ -38,4 +38,15 @@ impl KeyboardState {
   pub fn is_key_pressed(&self, key_index: u8) -> bool {
     return self.pressed_keys[key_index as usize];
   }
+
+  pub fn get_pressed_keys(&self) -> Vec<u8> {
+    let mut keys_pressed: Vec<u8> = vec![];
+    for (i, pressed) in self.pressed_keys.iter().enumerate() {
+      if *pressed {
+        keys_pressed.push(i as u8);
+      }
+    }
+    
+    keys_pressed
+  }
 }

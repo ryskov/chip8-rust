@@ -17,12 +17,6 @@ pub struct Cpu {
 pub struct ProgramChange {
     pub redraw: bool,
 }
-use std::io::{stdin, stdout, Read, Write};
-fn pause() {
-    let mut stdout = stdout();
-    stdout.flush().unwrap();
-    stdin().read(&mut [0]).unwrap();
-}
 
 impl Cpu {
     pub fn new() -> Self {
@@ -63,9 +57,11 @@ impl Cpu {
             Opcode::RET => self.ret(),
             Opcode::JP { addr } => self.jp_addr(addr),
             Opcode::SE { x, byte } => self.se_vx_byte(x, byte),
+            Opcode::SNE { x, byte } => self.sne_vx_byte(x, byte),
             Opcode::LD_IMM { x, byte } => self.ld_vx_byte(x, byte),
             Opcode::ADD_IMM { x, byte } => self.add_vx_byte(x, byte),
             Opcode::ADD_R { x, y } => self.add_vx_vy(x, y),
+            Opcode::SUB_R { x, y } => self.sub_vx_vy(x,y),
             Opcode::LD_R { x, y } => self.ld_vx_vy(x, y),
             Opcode::LDI_IMM { addr } => self.ld_i_addr(addr),
             Opcode::DRW { x, y, size } => {
@@ -77,9 +73,12 @@ impl Cpu {
             Opcode::ADDI_R { x } => self.add_i_vx(x),
             Opcode::LD_M { x } => self.ld_vx_i(x, memory),
             Opcode::SET_DT { x } => self.set_dt(x),
+            Opcode::SET_ST { x } => self.set_st(x),
             Opcode::LD_DT { x } => self.ld_dt(x),
             Opcode::AND { x, y } => self.and(x, y),
             Opcode::SHR { x } => self.shr(x),
+            Opcode::XOR_R { x, y } => self.xor_vx_vy(x, y),
+            Opcode::LD_R_K { x } => self.ld_vx_k(x, keyboard_state),
             _ => panic!("Instruction: {:#X?} - not handled", instruction),
         };
 
@@ -87,6 +86,7 @@ impl Cpu {
             ProgramCounter::Next => self.reg_pc += 2,
             ProgramCounter::Jump(addr) => self.reg_pc = addr,
             ProgramCounter::Skip => self.reg_pc += 4,
+            ProgramCounter::Wait => {}
         };
 
         // println!("I: {:#X?} GP: {:X?}", self.reg_i, self.reg_gp);
@@ -106,10 +106,18 @@ impl Cpu {
     // skip equal
     fn se_vx_byte(&mut self, x: u8, byte: u8) -> ProgramCounter {
         if self.reg_gp[x as usize] == byte {
-            return ProgramCounter::Skip;
+            ProgramCounter::Skip
+        } else {
+            ProgramCounter::Next
         }
+    }
 
-        ProgramCounter::Next
+    fn sne_vx_byte(&mut self, x: u8, byte: u8) -> ProgramCounter {
+        if self.reg_gp[x as usize] == byte {
+            ProgramCounter::Next
+        } else {
+            ProgramCounter::Skip
+        }
     }
 
     fn ld_vx_byte(&mut self, x: u8, byte: u8) -> ProgramCounter {
@@ -127,6 +135,18 @@ impl Cpu {
         let val: u16 = (self.reg_gp[x as usize] as u16) + (self.reg_gp[y as usize] as u16);
         self.reg_gp[0xF] = if val > 0xFF { 1 } else { 0 };
         self.reg_gp[x as usize] = (val & 0xFF) as u8;
+        ProgramCounter::Next
+    }
+
+    fn sub_vx_vy(&mut self, x: u8, y: u8) -> ProgramCounter {
+        self.reg_gp[x as usize] = if self.reg_gp[x as usize] > self.reg_gp[y as usize] {
+            self.reg_gp[0xF] = 1;
+            self.reg_gp[x as usize] - self.reg_gp[y as usize]
+        } else {
+            self.reg_gp[0xF] = 0;
+            0
+        };
+
         ProgramCounter::Next
     }
 
@@ -196,6 +216,11 @@ impl Cpu {
         ProgramCounter::Next
     }
 
+    fn set_st(&mut self, x: u8) -> ProgramCounter {
+        self.reg_sound_timer = self.reg_gp[x as usize];
+        ProgramCounter::Next
+    }
+
     fn ld_dt(&mut self, x: u8) -> ProgramCounter {
         self.reg_gp[x as usize] = self.reg_delay;
         ProgramCounter::Next
@@ -223,9 +248,25 @@ impl Cpu {
         self.reg_gp[x as usize] /= 2;
         ProgramCounter::Next
     }
+
+    fn xor_vx_vy(&mut self, x: u8, y: u8) -> ProgramCounter {
+        self.reg_gp[x as usize] ^= self.reg_gp[y as usize];
+        ProgramCounter::Next
+    }
+
+    fn ld_vx_k(&mut self, x: u8, keyboard_state: &KeyboardState) -> ProgramCounter {
+        let pressed_keys = keyboard_state.get_pressed_keys();
+        if pressed_keys.len() > 0 {
+            self.reg_gp[x as usize] = pressed_keys[0];
+            ProgramCounter::Next
+        } else {
+            ProgramCounter::Wait
+        }
+    }
 }
 
 enum ProgramCounter {
+    Wait,
     Next,
     Skip,
     Jump(u16),

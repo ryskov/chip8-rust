@@ -6,20 +6,25 @@ pub enum Opcode {
   JP { addr: u16 },
   CALL { addr: u16 },
   SE { x: u8, byte: u8 },
+  SNE { x: u8, byte: u8 },
   LD_IMM { x: u8, byte: u8 },
   ADD_IMM { x: u8, byte: u8 },
   ADD_R { x: u8, y: u8 },
+  SUB_R { x: u8, y: u8},
   LD_R { x: u8, y: u8 },
   LDI_IMM { addr: u16 },
   DRW { x: u8, y: u8, size: u8 },
   SKNP { x: u8 },
   SKP { x: u8 },
+  LD_R_K { x: u8 },
   ADDI_R { x: u8 },
   LD_M { x: u8 },
   SET_DT { x: u8 },
+  SET_ST { x: u8 },
   LD_DT { x: u8 },
   AND { x: u8, y: u8 },
   SHR { x: u8 },
+  XOR_R { x: u8, y: u8 },
 }
 
 impl Opcode {
@@ -64,6 +69,10 @@ impl Opcode {
         x: Opcode::read_x(instruction),
         byte: Opcode::read_kk(instruction),
       },
+      (0x04, _, _, _) => Opcode::SNE {
+        x: Opcode::read_x(instruction),
+        byte: Opcode::read_kk(instruction),
+      },
       (0x06, _, _, _) => Opcode::LD_IMM {
         x: Opcode::read_x(instruction),
         byte: Opcode::read_kk(instruction),
@@ -80,7 +89,15 @@ impl Opcode {
         x: Opcode::read_x(instruction),
         y: Opcode::read_y(instruction),
       },
+      (0x08, _, _, 0x3) => Opcode::XOR_R {
+        x: Opcode::read_x(instruction),
+        y: Opcode::read_y(instruction),
+      },
       (0x08, _, _, 0x4) => Opcode::ADD_R {
+        x: Opcode::read_x(instruction),
+        y: Opcode::read_y(instruction),
+      },
+      (0x08, _, _, 0x5) => Opcode::SUB_R {
         x: Opcode::read_x(instruction),
         y: Opcode::read_y(instruction),
       },
@@ -104,7 +121,13 @@ impl Opcode {
       (0x0F, _, 0x00, 0x07) => Opcode::LD_DT {
         x: Opcode::read_x(instruction),
       },
+      (0x0F, _, 0x00, 0x0A) => Opcode::LD_R_K {
+        x: Opcode::read_x(instruction),
+      },
       (0x0F, _, 0x01, 0x05) => Opcode::SET_DT {
+        x: Opcode::read_x(instruction),
+      },
+      (0x0F, _, 0x01, 0x08) => Opcode::SET_ST {
         x: Opcode::read_x(instruction),
       },
       (0x0F, _, 0x01, 0x0E) => Opcode::ADDI_R {

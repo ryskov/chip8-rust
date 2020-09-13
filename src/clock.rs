@@ -15,7 +15,8 @@ impl Clock {
   }
 
   pub fn tick(&mut self) -> bool {
-    if self.instant.elapsed() >= self.duration {
+    let elapsed = self.instant.elapsed();
+    if elapsed >= self.duration {
       self.instant = Instant::now();
       return true;
     }
@@ -35,8 +36,14 @@ impl Clock {
   pub fn sleep_until_next_tick(clocks: Vec<&Clock>) {
     match clocks.iter().map(|c| c.time_to_next_tick()).min() {
       Some(duration) => {
-        std::thread::sleep(duration);
-      }
+        if cfg!(windows) {
+          if duration.as_millis() > 1 {
+            std::thread::sleep(Duration::from_millis(duration.as_millis() as u64 - 1));  
+          }
+        } else {
+          std::thread::sleep(duration);
+        }
+      },
       _ => {}
     };
   }
