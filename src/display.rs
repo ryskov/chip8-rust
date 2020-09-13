@@ -32,7 +32,7 @@ impl Display {
                 } as u8;
                 let new_state = currently_active ^ draw;
 
-                self.framebuffer[buffer_pos] = if new_state == 1 { 0x00FFFFFF } else { 0 };
+                self.framebuffer[buffer_pos] = if new_state == 1 { 0x0044FFFF } else { 0 };
             }
         }
     }

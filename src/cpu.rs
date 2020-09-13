@@ -1,4 +1,5 @@
 use super::display;
+use super::keyboard::KeyboardState;
 use super::memory;
 use super::opcode::Opcode;
 
@@ -31,19 +32,28 @@ impl Cpu {
         cpu
     }
 
+    pub fn tick_timers(&mut self) {
+        if self.reg_delay > 0 {
+            self.reg_delay -= 1;
+        }
+
+        if self.reg_sound_timer > 0 {
+            self.reg_sound_timer -= 1;
+        }
+    }
+
     pub fn step(
         &mut self,
         memory: &mut memory::Memory,
         display: &mut display::Display,
+        keyboard_state: &KeyboardState,
     ) -> ProgramChange {
         let instruction = memory.read_doublebyte(self.reg_pc);
         let opcode = Opcode::decode(instruction);
-
         let mut program_change = ProgramChange { redraw: false };
 
-        // print!("{:#X?} - {:#X?}: {:x?}", self.reg_pc, instruction, opcode);
+        println!("{:#X?} - {:#X?}: {:x?}", self.reg_pc, instruction, opcode);
         // pause();
-
         let program_counter = match opcode {
             Opcode::CALL { addr } => {
                 program_change.redraw = true;
@@ -54,19 +64,23 @@ impl Cpu {
             Opcode::JP { addr } => self.jp_addr(addr),
             Opcode::SE { x, byte } => self.se_vx_byte(x, byte),
             Opcode::LD_IMM { x, byte } => self.ld_vx_byte(x, byte),
-            Opcode::ADD { x, byte } => self.add_vx_byte(x, byte),
+            Opcode::ADD_IMM { x, byte } => self.add_vx_byte(x, byte),
+            Opcode::ADD_R { x, y } => self.add_vx_vy(x, y),
             Opcode::LD_R { x, y } => self.ld_vx_vy(x, y),
             Opcode::LDI_IMM { addr } => self.ld_i_addr(addr),
             Opcode::DRW { x, y, size } => {
                 program_change.redraw = true;
                 self.drw_vx_vy_nibble(x, y, size, memory, display)
             }
-            Opcode::SKNP { x } => self.sknp_vx(x),
+            Opcode::SKNP { x } => self.sknp_vx(x, keyboard_state),
+            Opcode::SKP { x } => self.skp_vx(x, keyboard_state),
             Opcode::ADDI_R { x } => self.add_i_vx(x),
             Opcode::LD_M { x } => self.ld_vx_i(x, memory),
             Opcode::SET_DT { x } => self.set_dt(x),
             Opcode::LD_DT { x } => self.ld_dt(x),
-            _ => panic!(),
+            Opcode::AND { x, y } => self.and(x, y),
+            Opcode::SHR { x } => self.shr(x),
+            _ => panic!("Instruction: {:#X?} - not handled", instruction),
         };
 
         match program_counter {
@@ -76,11 +90,6 @@ impl Cpu {
         };
 
         // println!("I: {:#X?} GP: {:X?}", self.reg_i, self.reg_gp);
-
-        if self.reg_delay > 0 {
-            self.reg_delay -= 1;
-        }
-        // std::thread::sleep(std::time::Duration::from_millis(10));
 
         program_change
     }
@@ -109,7 +118,15 @@ impl Cpu {
     }
 
     fn add_vx_byte(&mut self, x: u8, byte: u8) -> ProgramCounter {
-        self.reg_gp[x as usize] += byte;
+        let val: u16 = (self.reg_gp[x as usize] as u16) + (byte as u16);
+        self.reg_gp[x as usize] = (val & 0xFF) as u8;
+        ProgramCounter::Next
+    }
+
+    fn add_vx_vy(&mut self, x: u8, y: u8) -> ProgramCounter {
+        let val: u16 = (self.reg_gp[x as usize] as u16) + (self.reg_gp[y as usize] as u16);
+        self.reg_gp[0xF] = if val > 0xFF { 1 } else { 0 };
+        self.reg_gp[x as usize] = (val & 0xFF) as u8;
         ProgramCounter::Next
     }
 
@@ -150,13 +167,20 @@ impl Cpu {
         ProgramCounter::Next
     }
 
-    fn sknp_vx(&mut self, x: u8) -> ProgramCounter {
-        let pressed = false;
-        if pressed == false {
-            return ProgramCounter::Skip;
+    fn sknp_vx(&mut self, x: u8, keyboard_state: &KeyboardState) -> ProgramCounter {
+        if keyboard_state.is_key_pressed(self.reg_gp[x as usize]) {
+            ProgramCounter::Next
+        } else {
+            ProgramCounter::Skip
         }
+    }
 
-        ProgramCounter::Next
+    fn skp_vx(&mut self, x: u8, keyboard_state: &KeyboardState) -> ProgramCounter {
+        if keyboard_state.is_key_pressed(self.reg_gp[x as usize]) {
+            ProgramCounter::Skip
+        } else {
+            ProgramCounter::Next
+        }
     }
 
     fn ld_vx_i(&mut self, x: u8, memory: &mut memory::Memory) -> ProgramCounter {
@@ -186,6 +210,17 @@ impl Cpu {
 
     fn cls(&mut self, display: &mut display::Display) -> ProgramCounter {
         display.clear();
+        ProgramCounter::Next
+    }
+
+    fn and(&mut self, x: u8, y: u8) -> ProgramCounter {
+        self.reg_gp[x as usize] &= self.reg_gp[y as usize];
+        ProgramCounter::Next
+    }
+
+    fn shr(&mut self, x: u8) -> ProgramCounter {
+        self.reg_gp[0xF] = self.reg_gp[x as usize] & 0b1;
+        self.reg_gp[x as usize] /= 2;
         ProgramCounter::Next
     }
 }

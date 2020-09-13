@@ -1,12 +1,13 @@
 mod chip8;
+mod clock;
 mod cpu;
 mod display;
+mod keyboard;
 mod memory;
 mod opcode;
 
 use chip8::Chip8;
 use std::fs::File;
-use std::io;
 use std::io::Read;
 use std::path::Path;
 
@@ -19,14 +20,12 @@ fn main() {
     let program = read_bin(program_file);
     let mut window_options = WindowOptions::default();
     window_options.scale = minifb::Scale::X16;
-
     let mut window = Window::new("CHIP8", WIDTH, HEIGHT, window_options).unwrap_or_else(|e| {
         panic!("{}", e);
     });
 
     // Limit to max ~60 fps update rate
-    window.limit_update_rate(Some(std::time::Duration::from_micros(16600)));
-
+    window.limit_update_rate(None);
     let mut chip8 = Chip8::new(program, window);
     chip8.run();
 }
