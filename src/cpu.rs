@@ -2,7 +2,8 @@ use super::display;
 use super::keyboard::KeyboardState;
 use super::memory;
 use super::opcode::Opcode;
-
+use rand::prelude::*;
+use rand::Rng;
 #[derive(Debug, Default)]
 pub struct Cpu {
     reg_gp: [u8; 16],
@@ -12,6 +13,7 @@ pub struct Cpu {
     reg_pc: u16,
     reg_sp: u8,
     stack: [u16; 16],
+    thread_rng: ThreadRng
 }
 
 pub struct ProgramChange {
@@ -79,6 +81,7 @@ impl Cpu {
             Opcode::SHR { x } => self.shr(x),
             Opcode::XOR_R { x, y } => self.xor_vx_vy(x, y),
             Opcode::LD_R_K { x } => self.ld_vx_k(x, keyboard_state),
+            Opcode::RND { x, byte } => self.rnd_vx_byte(x, byte),
             _ => panic!("Instruction: {:#X?} - not handled", instruction),
         };
 
@@ -262,6 +265,12 @@ impl Cpu {
         } else {
             ProgramCounter::Wait
         }
+    }
+
+    fn rnd_vx_byte(&mut self, x: u8, byte: u8) -> ProgramCounter {
+        let num: u8 = self.thread_rng.gen();
+        self.reg_gp[x as usize] = byte & num;
+        ProgramCounter::Next
     }
 }
 

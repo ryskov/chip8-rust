@@ -25,6 +25,7 @@ pub enum Opcode {
   AND { x: u8, y: u8 },
   SHR { x: u8 },
   XOR_R { x: u8, y: u8 },
+  RND { x: u8, byte: u8 }
 }
 
 impl Opcode {
@@ -106,6 +107,10 @@ impl Opcode {
       },
       (0x0A, _, _, _) => Opcode::LDI_IMM {
         addr: Opcode::read_nnn(instruction),
+      },
+      (0x0C, _, _, _) => Opcode::RND {
+        x: Opcode::read_x(instruction),
+        byte: Opcode::read_kk(instruction)
       },
       (0x0D, _, _, _) => Opcode::DRW {
         x: Opcode::read_x(instruction),
