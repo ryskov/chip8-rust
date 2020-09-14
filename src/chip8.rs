@@ -7,6 +7,18 @@ use super::memory::Memory;
 use minifb::Window;
 use minifb::{Key, KeyRepeat};
 
+
+use pixels::{Error, Pixels, SurfaceTexture};
+use winit::dpi::LogicalSize;
+use winit::event::{Event, VirtualKeyCode};
+use winit::event_loop::{ControlFlow, EventLoop};
+use winit::window::WindowBuilder;
+use winit_input_helper::WinitInputHelper;
+
+const CHIP8_WIDTH: u32 = 64;
+const CHIP8_HEIGHT: u32 = 32;
+const SCALE_FACTOR: u32 = 10;
+
 #[derive(Debug)]
 pub struct Chip8 {
     cpu: Cpu,
@@ -29,7 +41,44 @@ impl Chip8 {
         }
     }
 
+    fn draw_to_frame(&mut self, frame: &mut [u8]) {
+
+    }
+
     pub fn run(&mut self) {
+        // let event_loop = EventLoop::new();
+        // let mut input = WinitInputHelper::new();
+        // let window = {
+        //     let size = LogicalSize::new(CHIP8_WIDTH * SCALE_FACTOR, CHIP8_HEIGHT * SCALE_FACTOR);
+        //     WindowBuilder::new()
+        //         .with_title("CHIP8")
+        //         .with_inner_size(size)
+        //         .with_min_inner_size(size)
+        //         .build(&event_loop)
+        //         .unwrap()
+        // };
+        // let mut pixels = {
+        //     let window_size = window.inner_size();
+        //     let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
+        //     Pixels::new(CHIP8_WIDTH * SCALE_FACTOR, CHIP8_HEIGHT * SCALE_FACTOR, surface_texture).unwrap()
+        // };
+        // self.draw_to_frame(pixels.get_frame());
+        
+        // event_loop.run(move |event, _, control_flow| {
+        //     if let Event::RedrawRequested(_) = event {
+        //         self.display.draw_to_frame(pixels.get_frame(), SCALE_FACTOR as usize);
+
+        //         // self.display.draw_to_frame(&'a mut [0, 1], SCALE_FACTOR as usize);
+        //         // self.display.draw_to_frame(pixels.get_frame(), SCALE_FACTOR as usize);
+        //     //     pixels.render().unwrap();
+        //     //     // if pixels.render().is_err() {
+        //     //     //     *control_flow = ControlFlow::Exit;
+        //     //     //     return;
+        //         // }
+        //     }
+        // });
+
+        
         let mut cpu_clock = Clock::new(500);
         let mut timer_clock = Clock::new(60);
         let mut keyboard_poll_clock = Clock::new(10);
