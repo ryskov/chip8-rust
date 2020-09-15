@@ -11,23 +11,87 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
-use minifb::{Window, WindowOptions};
-const WIDTH: usize = 64;
-const HEIGHT: usize = 32;
+use pixels::{Error, Pixels, SurfaceTexture};
+use winit::dpi::LogicalSize;
+use winit::event::{Event, VirtualKeyCode, WindowEvent};
+use winit::event_loop::{ControlFlow, EventLoop};
+use winit::window::WindowBuilder;
+use winit_input_helper::WinitInputHelper;
+
+use std::time::{Duration, Instant};
+use std::ops::Add;
+
+const SCALE_FACTOR: u32 = 20;
 
 fn main() {
     let program_file = std::env::args().nth(1).unwrap();
     let program = read_bin(program_file);
-    let mut window_options = WindowOptions::default();
-    window_options.scale = minifb::Scale::X16;
-    let mut window = Window::new("CHIP8", WIDTH, HEIGHT, window_options).unwrap_or_else(|e| {
-        panic!("{}", e);
-    });
+    let mut chip8 = Chip8::new(program);
 
-    // Limit to max ~60 fps update rate
-    window.limit_update_rate(None);
-    let mut chip8 = Chip8::new(program, window);
-    chip8.run();
+    let event_loop = EventLoop::new();
+    
+    let mut input = WinitInputHelper::new();
+    let window = {
+        let size = LogicalSize::new(
+            Chip8::SCREEN_WIDTH * SCALE_FACTOR,
+            Chip8::SCREEN_HEIGHT * SCALE_FACTOR,
+        );
+        WindowBuilder::new()
+            .with_title("CHIP8")
+            .with_inner_size(size)
+            .with_min_inner_size(size)
+            .with_max_inner_size(size)
+            .with_resizable(false)
+            .build(&event_loop)
+            .unwrap()
+    };
+    let mut pixels = {
+        let window_size = window.inner_size();
+        let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
+        Pixels::new(Chip8::SCREEN_WIDTH, Chip8::SCREEN_HEIGHT, surface_texture).unwrap()
+    };
+
+    loop {
+        let (redraw, sleep_duration) = chip8.update();
+        if redraw {
+            chip8.draw_to_frame(pixels.get_frame(), 1 as usize);
+            // pixels.render().unwrap();
+        }
+    }
+
+    event_loop.run(move |event, _, control_flow| {
+        match event {
+            Event::WindowEvent {
+                event: WindowEvent::CloseRequested,
+                ..
+            } => {
+                *control_flow = ControlFlow::Exit;
+            },
+            Event::RedrawRequested(_) => {
+                // chip8.draw_to_frame(pixels.get_frame(), 1 as usize);
+                pixels.render().unwrap();
+            }
+            _ => (),
+        }
+
+        if input.update(&event) {
+            if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
+                *control_flow = ControlFlow::Exit;
+                return;
+            }
+            // chip8.handle_winit_input(&input);
+
+            
+            
+            // *control_flow = ControlFlow::WaitUntil(std::time::Instant::now().add(sleep_duration));
+        }
+
+        let (redraw, sleep_duration) = chip8.update();
+        if redraw {
+            window.request_redraw();
+        }
+
+    });
 }
 
 fn read_bin<P: AsRef<Path>>(path: P) -> Box<[u8]> {

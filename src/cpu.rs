@@ -13,7 +13,7 @@ pub struct Cpu {
     reg_pc: u16,
     reg_sp: u8,
     stack: [u16; 16],
-    thread_rng: ThreadRng
+    thread_rng: ThreadRng,
 }
 
 pub struct ProgramChange {
@@ -48,7 +48,7 @@ impl Cpu {
         let opcode = Opcode::decode(instruction);
         let mut program_change = ProgramChange { redraw: false };
 
-        println!("{:#X?} - {:#X?}: {:x?}", self.reg_pc, instruction, opcode);
+        // println!("{:#X?} - {:#X?}: {:x?}", self.reg_pc, instruction, opcode);
         // pause();
         let program_counter = match opcode {
             Opcode::CALL { addr } => {
@@ -63,7 +63,7 @@ impl Cpu {
             Opcode::LD_IMM { x, byte } => self.ld_vx_byte(x, byte),
             Opcode::ADD_IMM { x, byte } => self.add_vx_byte(x, byte),
             Opcode::ADD_R { x, y } => self.add_vx_vy(x, y),
-            Opcode::SUB_R { x, y } => self.sub_vx_vy(x,y),
+            Opcode::SUB_R { x, y } => self.sub_vx_vy(x, y),
             Opcode::LD_R { x, y } => self.ld_vx_vy(x, y),
             Opcode::LDI_IMM { addr } => self.ld_i_addr(addr),
             Opcode::DRW { x, y, size } => {

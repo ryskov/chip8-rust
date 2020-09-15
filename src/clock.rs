@@ -17,6 +17,10 @@ impl Clock {
   pub fn tick(&mut self) -> bool {
     let elapsed = self.instant.elapsed();
     if elapsed >= self.duration {
+      let dur: Duration = elapsed - self.duration;
+      if (dur.as_micros() > 1000) {
+        println!("Time over tick {}", dur.as_micros());
+      }
       self.instant = Instant::now();
       return true;
     }
@@ -33,17 +37,34 @@ impl Clock {
     }
   }
 
+  pub fn duration_until_next_tick(clocks: Vec<&Clock>) -> Duration {
+    match clocks.iter().map(|c| c.time_to_next_tick()).min() {
+      Some(duration) => {
+        if cfg!(windows) {
+          if duration.as_millis() > 1 {
+            Duration::from_millis(duration.as_millis() as u64 - 1)
+          } else {
+            Duration::from_micros(0)
+          }
+        } else {
+          duration
+        }
+      }
+      _ => Duration::from_micros(0)
+    }
+  }
+
   pub fn sleep_until_next_tick(clocks: Vec<&Clock>) {
     match clocks.iter().map(|c| c.time_to_next_tick()).min() {
       Some(duration) => {
         if cfg!(windows) {
           if duration.as_millis() > 1 {
-            std::thread::sleep(Duration::from_millis(duration.as_millis() as u64 - 1));  
+            std::thread::sleep(Duration::from_millis(duration.as_millis() as u64 - 1));
           }
         } else {
           std::thread::sleep(duration);
         }
-      },
+      }
       _ => {}
     };
   }
