@@ -11,17 +11,14 @@ use std::fs::File;
 use std::io::Read;
 use std::path::Path;
 
-use pixels::{Error, Pixels, SurfaceTexture};
+use pixels::{Pixels, SurfaceTexture};
 use winit::dpi::LogicalSize;
 use winit::event::{Event, VirtualKeyCode, WindowEvent};
 use winit::event_loop::{ControlFlow, EventLoop};
 use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 
-use std::time::{Duration, Instant};
-use std::ops::Add;
-
-const SCALE_FACTOR: u32 = 10;
+const SCALE_FACTOR: u32 = 30;
 
 fn main() {
     let program_file = std::env::args().nth(1).unwrap();
@@ -72,13 +69,11 @@ fn main() {
                 return;
             }
             chip8.handle_winit_input(&input);
-
+            
             if chip8.update() {
                 window.request_redraw();
             }
-            // *control_flow = ControlFlow::WaitUntil(std::time::Instant::now().add(sleep_duration));
         }
-
     });
 }
 

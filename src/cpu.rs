@@ -14,6 +14,7 @@ pub struct Cpu {
     reg_sp: u8,
     stack: [u16; 16],
     thread_rng: ThreadRng,
+    font_addr: u16,
 }
 
 pub struct ProgramChange {
@@ -21,9 +22,10 @@ pub struct ProgramChange {
 }
 
 impl Cpu {
-    pub fn new() -> Self {
+    pub fn new(font_addr: u16) -> Self {
         let mut cpu = Cpu::default();
         cpu.reg_pc = 0x200;
+        cpu.font_addr = font_addr;
 
         cpu
     }
@@ -59,7 +61,9 @@ impl Cpu {
             Opcode::RET => self.ret(),
             Opcode::JP { addr } => self.jp_addr(addr),
             Opcode::SE { x, byte } => self.se_vx_byte(x, byte),
+            Opcode::SE_R { x, y } => self.se_vx_vy(x, y),
             Opcode::SNE { x, byte } => self.sne_vx_byte(x, byte),
+            Opcode::SNE_R { x, y } => self.sne_vx_vy(x, y),
             Opcode::LD_IMM { x, byte } => self.ld_vx_byte(x, byte),
             Opcode::ADD_IMM { x, byte } => self.add_vx_byte(x, byte),
             Opcode::ADD_R { x, y } => self.add_vx_vy(x, y),
@@ -74,14 +78,19 @@ impl Cpu {
             Opcode::SKP { x } => self.skp_vx(x, keyboard_state),
             Opcode::ADDI_R { x } => self.add_i_vx(x),
             Opcode::LD_M { x } => self.ld_vx_i(x, memory),
+            Opcode::LD_B { x } => self.ld_b_vx(x, memory),
+            Opcode::LDM_X { x } => self.ld_i_vx(x, memory),
             Opcode::SET_DT { x } => self.set_dt(x),
             Opcode::SET_ST { x } => self.set_st(x),
             Opcode::LD_DT { x } => self.ld_dt(x),
             Opcode::AND { x, y } => self.and(x, y),
             Opcode::SHR { x } => self.shr(x),
+            Opcode::OR_R { x, y } => self.or_vx_vy(x, y),
             Opcode::XOR_R { x, y } => self.xor_vx_vy(x, y),
             Opcode::LD_R_K { x } => self.ld_vx_k(x, keyboard_state),
             Opcode::RND { x, byte } => self.rnd_vx_byte(x, byte),
+            Opcode::SHL { x } => self.shl(x),
+            Opcode::LD_F { x } => self.ld_f(x),
             _ => panic!("Instruction: {:#X?} - not handled", instruction),
         };
 
@@ -115,8 +124,24 @@ impl Cpu {
         }
     }
 
+    fn se_vx_vy(&mut self, x: u8, y: u8) -> ProgramCounter {
+        if self.reg_gp[x as usize] == self.reg_gp[y as usize] {
+            ProgramCounter::Skip
+        } else {
+            ProgramCounter::Next
+        }
+    }
+
     fn sne_vx_byte(&mut self, x: u8, byte: u8) -> ProgramCounter {
         if self.reg_gp[x as usize] == byte {
+            ProgramCounter::Next
+        } else {
+            ProgramCounter::Skip
+        }
+    }
+
+    fn sne_vx_vy(&mut self, x: u8, y: u8) -> ProgramCounter {
+        if self.reg_gp[x as usize] == self.reg_gp[y as usize] {
             ProgramCounter::Next
         } else {
             ProgramCounter::Skip
@@ -142,13 +167,13 @@ impl Cpu {
     }
 
     fn sub_vx_vy(&mut self, x: u8, y: u8) -> ProgramCounter {
-        self.reg_gp[x as usize] = if self.reg_gp[x as usize] > self.reg_gp[y as usize] {
+        if self.reg_gp[x as usize] > self.reg_gp[y as usize] {
             self.reg_gp[0xF] = 1;
-            self.reg_gp[x as usize] - self.reg_gp[y as usize]
         } else {
             self.reg_gp[0xF] = 0;
-            0
-        };
+        }
+
+        self.reg_gp[x as usize] -= self.reg_gp[y as usize];
 
         ProgramCounter::Next
     }
@@ -206,9 +231,17 @@ impl Cpu {
         }
     }
 
-    fn ld_vx_i(&mut self, x: u8, memory: &mut memory::Memory) -> ProgramCounter {
+    fn ld_vx_i(&mut self, x: u8, memory: &memory::Memory) -> ProgramCounter {
         for i in 0..x + 1 {
             self.reg_gp[i as usize] = memory.read_byte(self.reg_i + (i as u16));
+        }
+
+        ProgramCounter::Next
+    }
+
+    fn ld_i_vx(&mut self, x: u8, memory: &mut memory::Memory) -> ProgramCounter {
+        for i in 0..x + 1 {
+            memory.write_byte(self.reg_i + (i as u16), self.reg_gp[i as usize]);
         }
 
         ProgramCounter::Next
@@ -252,6 +285,11 @@ impl Cpu {
         ProgramCounter::Next
     }
 
+    fn or_vx_vy(&mut self, x: u8, y: u8) -> ProgramCounter {
+        self.reg_gp[x as usize] |= self.reg_gp[y as usize];
+        ProgramCounter::Next
+    }
+
     fn xor_vx_vy(&mut self, x: u8, y: u8) -> ProgramCounter {
         self.reg_gp[x as usize] ^= self.reg_gp[y as usize];
         ProgramCounter::Next
@@ -270,6 +308,32 @@ impl Cpu {
     fn rnd_vx_byte(&mut self, x: u8, byte: u8) -> ProgramCounter {
         let num: u8 = self.thread_rng.gen();
         self.reg_gp[x as usize] = byte & num;
+        ProgramCounter::Next
+    }
+
+    fn shl(&mut self, x: u8) -> ProgramCounter {
+        if self.reg_gp[x as usize] >> 7 == 1 {
+            self.reg_gp[0xF] = 1
+        } else {
+            self.reg_gp[0xF] = 0
+        }
+
+        self.reg_gp[x as usize] *= 2;
+
+        ProgramCounter::Next
+    }
+
+    fn ld_b_vx(&mut self, x: u8, memory: &mut memory::Memory) -> ProgramCounter {
+        memory.write_byte(self.reg_i, self.reg_gp[x as usize] / 100);
+        memory.write_byte(self.reg_i + 1, (self.reg_gp[x as usize] % 100) / 10);
+        memory.write_byte(self.reg_i + 2, self.reg_gp[x as usize] % 10);
+
+        ProgramCounter::Next
+    }
+
+    fn ld_f(&mut self, x: u8) -> ProgramCounter {
+        self.reg_i = self.font_addr + (self.reg_gp[x as usize] * 5) as u16;
+
         ProgramCounter::Next
     }
 }

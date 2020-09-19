@@ -28,9 +28,9 @@ impl KeyboardState {
 
   fn update_key_state(&mut self, input: &WinitInputHelper, key_code: VirtualKeyCode) {
     let index = KeyboardState::key_code_to_index(key_code);
-    if input.key_pressed(key_code) {
+    if input.key_held(key_code) {
       self.pressed_keys[index] = true;
-    } else if input.key_released(key_code) {
+    } else {
       self.pressed_keys[index] = false;
     }
   }
