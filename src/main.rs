@@ -21,7 +21,7 @@ use winit_input_helper::WinitInputHelper;
 use std::time::{Duration, Instant};
 use std::ops::Add;
 
-const SCALE_FACTOR: u32 = 20;
+const SCALE_FACTOR: u32 = 10;
 
 fn main() {
     let program_file = std::env::args().nth(1).unwrap();
@@ -51,14 +51,6 @@ fn main() {
         Pixels::new(Chip8::SCREEN_WIDTH, Chip8::SCREEN_HEIGHT, surface_texture).unwrap()
     };
 
-    loop {
-        let (redraw, sleep_duration) = chip8.update();
-        if redraw {
-            chip8.draw_to_frame(pixels.get_frame(), 1 as usize);
-            // pixels.render().unwrap();
-        }
-    }
-
     event_loop.run(move |event, _, control_flow| {
         match event {
             Event::WindowEvent {
@@ -68,7 +60,7 @@ fn main() {
                 *control_flow = ControlFlow::Exit;
             },
             Event::RedrawRequested(_) => {
-                // chip8.draw_to_frame(pixels.get_frame(), 1 as usize);
+                chip8.draw_to_frame(pixels.get_frame(), 1 as usize);
                 pixels.render().unwrap();
             }
             _ => (),
@@ -79,16 +71,12 @@ fn main() {
                 *control_flow = ControlFlow::Exit;
                 return;
             }
-            // chip8.handle_winit_input(&input);
+            chip8.handle_winit_input(&input);
 
-            
-            
+            if chip8.update() {
+                window.request_redraw();
+            }
             // *control_flow = ControlFlow::WaitUntil(std::time::Instant::now().add(sleep_duration));
-        }
-
-        let (redraw, sleep_duration) = chip8.update();
-        if redraw {
-            window.request_redraw();
         }
 
     });

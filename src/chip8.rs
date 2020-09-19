@@ -4,6 +4,8 @@ use super::display::Display;
 use super::keyboard::KeyboardState;
 use super::memory::Memory;
 use winit_input_helper::WinitInputHelper;
+use std::rc::Rc;
+use std::cell::RefCell;
 
 #[derive(Debug)]
 pub struct Chip8 {
@@ -11,13 +13,14 @@ pub struct Chip8 {
     memory: Memory,
     display: Display,
     keyboard: KeyboardState,
-    cpu_clock: Clock,
-    timer_clock: Clock,
 }
+const CpuClock: Clock = Clock::new(500);
+const TimerClock: Clock = Clock::new(60);
 
 impl Chip8 {
     pub const SCREEN_HEIGHT: u32 = 32;
     pub const SCREEN_WIDTH: u32 = 64;
+
     pub fn new(program: Box<[u8]>) -> Self {
         let cpu = Cpu::new();
         let mut memory = Memory::new();
@@ -26,13 +29,14 @@ impl Chip8 {
         display.set_foreground_color(0x44FF55FF);
         display.set_background_color(0x333333FF);
 
+        CpuClock.start_clock();
+        TimerClock.start_clock();
+        
         Chip8 {
             cpu: cpu,
             memory: memory,
             display: display,
             keyboard: KeyboardState::default(),
-            cpu_clock: Clock::new(500),
-            timer_clock: Clock::new(60),
         }
     }
 
@@ -44,21 +48,18 @@ impl Chip8 {
         self.keyboard.handle_winit_input(input);
     }
 
-    pub fn update(&mut self) -> (bool, std::time::Duration) {
+    pub fn update(&mut self) -> bool {
         let mut redraw = false;
-        if self.cpu_clock.tick() {
-            let program_change = self
-                .cpu
-                .step(&mut self.memory, &mut self.display, &self.keyboard);
-            redraw = program_change.redraw;
-        }
-        if self.timer_clock.tick() {
+
+        CpuClock.run(|| {
+            let program_change = self.cpu.step(&mut self.memory, &mut self.display, &self.keyboard);
+
+            redraw |= program_change.redraw;
+        });
+        TimerClock.run(|| {
             self.cpu.tick_timers();
-        }
+        });
 
-        Clock::sleep_until_next_tick(vec![&self.cpu_clock, &self.timer_clock]);
-        let sleep_time = Clock::duration_until_next_tick(vec![&self.cpu_clock, &self.timer_clock]);
-
-        (redraw, sleep_time)
+        redraw
     }
 }
