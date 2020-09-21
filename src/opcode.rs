@@ -4,6 +4,7 @@ pub enum Opcode {
   CLS,
   RET,
   JP { addr: u16 },
+  JP_V0 { addr: u16 },
   CALL { addr: u16 },
   SE { x: u8, byte: u8 },
   SE_R { x: u8, y: u8 },
@@ -128,6 +129,9 @@ impl Opcode {
         y: Opcode::read_y(instruction),
       },
       (0x0A, _, _, _) => Opcode::LDI_IMM {
+        addr: Opcode::read_nnn(instruction),
+      },
+      (0x0B, _, _, _) => Opcode::JP_V0 {
         addr: Opcode::read_nnn(instruction),
       },
       (0x0C, _, _, _) => Opcode::RND {

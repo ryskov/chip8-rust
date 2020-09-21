@@ -60,6 +60,7 @@ impl Cpu {
             Opcode::CLS => self.cls(display),
             Opcode::RET => self.ret(),
             Opcode::JP { addr } => self.jp_addr(addr),
+            Opcode::JP_V0 { addr } => self.jp_v0_addr(addr),
             Opcode::SE { x, byte } => self.se_vx_byte(x, byte),
             Opcode::SE_R { x, y } => self.se_vx_vy(x, y),
             Opcode::SNE { x, byte } => self.sne_vx_byte(x, byte),
@@ -108,6 +109,10 @@ impl Cpu {
 
     fn jp_addr(&mut self, addr: u16) -> ProgramCounter {
         ProgramCounter::Jump(addr)
+    }
+
+    fn jp_v0_addr(&mut self, addr: u16) -> ProgramCounter {
+        ProgramCounter::Jump(addr + self.reg_gp[0] as u16)
     }
 
     fn call_addr(&mut self, addr: u16) -> ProgramCounter {
