@@ -1,31 +1,31 @@
 #[derive(Debug)]
 pub enum Opcode {
-  NOP,
-  CLS,
-  RET,
-  JP { addr: u16 },
-  CALL { addr: u16 },
-  SE { x: u8, byte: u8 },
-  SNE { x: u8, byte: u8 },
-  LD_IMM { x: u8, byte: u8 },
-  ADD_IMM { x: u8, byte: u8 },
-  ADD_R { x: u8, y: u8 },
-  SUB_R { x: u8, y: u8},
-  LD_R { x: u8, y: u8 },
-  LDI_IMM { addr: u16 },
-  DRW { x: u8, y: u8, size: u8 },
-  SKNP { x: u8 },
-  SKP { x: u8 },
-  LD_R_K { x: u8 },
-  ADDI_R { x: u8 },
-  LD_M { x: u8 },
-  SET_DT { x: u8 },
-  SET_ST { x: u8 },
-  LD_DT { x: u8 },
-  AND { x: u8, y: u8 },
-  SHR { x: u8 },
-  XOR_R { x: u8, y: u8 },
-  RND { x: u8, byte: u8 }
+  Nop,
+  Cls,
+  Ret,
+  Jp { addr: u16 },
+  Call { addr: u16 },
+  Se { x: u8, byte: u8 },
+  Sne { x: u8, byte: u8 },
+  LdImm { x: u8, byte: u8 },
+  AddImm { x: u8, byte: u8 },
+  AddR { x: u8, y: u8 },
+  SubR { x: u8, y: u8},
+  LdR { x: u8, y: u8 },
+  LdiImm { addr: u16 },
+  Drw { x: u8, y: u8, size: u8 },
+  Sknp { x: u8 },
+  Skp { x: u8 },
+  LdRK { x: u8 },
+  AddiR { x: u8 },
+  LdM { x: u8 },
+  SetDt { x: u8 },
+  SetSt { x: u8 },
+  LdDt { x: u8 },
+  And { x: u8, y: u8 },
+  Shr { x: u8 },
+  XorR { x: u8, y: u8 },
+  Rnd { x: u8, byte: u8 }
 }
 
 impl Opcode {
@@ -58,90 +58,90 @@ impl Opcode {
     );
 
     match nibbles {
-      (0x00, 0x00, 0x0E, 0x00) => Opcode::CLS,
-      (0x00, 0x00, 0x0E, 0x0E) => Opcode::RET,
-      (0x01, _, _, _) => Opcode::JP {
+      (0x00, 0x00, 0x0E, 0x00) => Opcode::Cls,
+      (0x00, 0x00, 0x0E, 0x0E) => Opcode::Ret,
+      (0x01, _, _, _) => Opcode::Jp {
         addr: Opcode::read_nnn(instruction),
       },
-      (0x02, _, _, _) => Opcode::CALL {
+      (0x02, _, _, _) => Opcode::Call {
         addr: Opcode::read_nnn(instruction),
       },
-      (0x03, _, _, _) => Opcode::SE {
+      (0x03, _, _, _) => Opcode::Se {
         x: Opcode::read_x(instruction),
         byte: Opcode::read_kk(instruction),
       },
-      (0x04, _, _, _) => Opcode::SNE {
+      (0x04, _, _, _) => Opcode::Sne {
         x: Opcode::read_x(instruction),
         byte: Opcode::read_kk(instruction),
       },
-      (0x06, _, _, _) => Opcode::LD_IMM {
+      (0x06, _, _, _) => Opcode::LdImm {
         x: Opcode::read_x(instruction),
         byte: Opcode::read_kk(instruction),
       },
-      (0x07, _, _, _) => Opcode::ADD_IMM {
+      (0x07, _, _, _) => Opcode::AddImm {
         x: Opcode::read_x(instruction),
         byte: Opcode::read_kk(instruction),
       },
-      (0x08, _, _, 0x00) => Opcode::LD_R {
+      (0x08, _, _, 0x00) => Opcode::LdR {
         x: Opcode::read_x(instruction),
         y: Opcode::read_y(instruction),
       },
-      (0x08, _, _, 0x02) => Opcode::AND {
+      (0x08, _, _, 0x02) => Opcode::And {
         x: Opcode::read_x(instruction),
         y: Opcode::read_y(instruction),
       },
-      (0x08, _, _, 0x3) => Opcode::XOR_R {
+      (0x08, _, _, 0x3) => Opcode::XorR {
         x: Opcode::read_x(instruction),
         y: Opcode::read_y(instruction),
       },
-      (0x08, _, _, 0x4) => Opcode::ADD_R {
+      (0x08, _, _, 0x4) => Opcode::AddR {
         x: Opcode::read_x(instruction),
         y: Opcode::read_y(instruction),
       },
-      (0x08, _, _, 0x5) => Opcode::SUB_R {
+      (0x08, _, _, 0x5) => Opcode::SubR {
         x: Opcode::read_x(instruction),
         y: Opcode::read_y(instruction),
       },
-      (0x08, _, _, 0x06) => Opcode::SHR {
+      (0x08, _, _, 0x06) => Opcode::Shr {
         x: Opcode::read_x(instruction),
       },
-      (0x0A, _, _, _) => Opcode::LDI_IMM {
+      (0x0A, _, _, _) => Opcode::LdiImm {
         addr: Opcode::read_nnn(instruction),
       },
-      (0x0C, _, _, _) => Opcode::RND {
+      (0x0C, _, _, _) => Opcode::Rnd {
         x: Opcode::read_x(instruction),
         byte: Opcode::read_kk(instruction)
       },
-      (0x0D, _, _, _) => Opcode::DRW {
+      (0x0D, _, _, _) => Opcode::Drw {
         x: Opcode::read_x(instruction),
         y: Opcode::read_y(instruction),
         size: Opcode::read_n(instruction),
       },
-      (0x0E, _, 0x9, 0xE) => Opcode::SKP {
+      (0x0E, _, 0x9, 0xE) => Opcode::Skp {
         x: Opcode::read_x(instruction),
       },
-      (0x0E, _, 0x0A, 0x01) => Opcode::SKNP {
+      (0x0E, _, 0x0A, 0x01) => Opcode::Sknp {
         x: Opcode::read_x(instruction),
       },
-      (0x0F, _, 0x00, 0x07) => Opcode::LD_DT {
+      (0x0F, _, 0x00, 0x07) => Opcode::LdDt {
         x: Opcode::read_x(instruction),
       },
-      (0x0F, _, 0x00, 0x0A) => Opcode::LD_R_K {
+      (0x0F, _, 0x00, 0x0A) => Opcode::LdRK {
         x: Opcode::read_x(instruction),
       },
-      (0x0F, _, 0x01, 0x05) => Opcode::SET_DT {
+      (0x0F, _, 0x01, 0x05) => Opcode::SetDt {
         x: Opcode::read_x(instruction),
       },
-      (0x0F, _, 0x01, 0x08) => Opcode::SET_ST {
+      (0x0F, _, 0x01, 0x08) => Opcode::SetSt {
         x: Opcode::read_x(instruction),
       },
-      (0x0F, _, 0x01, 0x0E) => Opcode::ADDI_R {
+      (0x0F, _, 0x01, 0x0E) => Opcode::AddiR {
         x: Opcode::read_x(instruction),
       },
-      (0x0F, _, 0x06, 0x05) => Opcode::LD_M {
+      (0x0F, _, 0x06, 0x05) => Opcode::LdM {
         x: Opcode::read_x(instruction),
       },
-      _ => Opcode::NOP, // panic!("Unrecognized instruction {:#X?}", instruction),
+      _ => Opcode::Nop, // panic!("Unrecognized instruction {:#X?}", instruction),
     }
   }
 }

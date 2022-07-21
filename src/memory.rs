@@ -32,7 +32,7 @@ impl Memory {
 
     pub fn read_chunk(&mut self, address: u16, size: usize) -> Vec<u8> {
         let mut chunk = vec![0; size];
-        
+
         for i in 0..size {
             chunk[i] = self.ram[(address as usize) + i];
             // println!("{:#X?}: {:#010b}", (address as usize) + i, chunk[i]);

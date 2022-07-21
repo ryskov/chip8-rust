@@ -13,7 +13,7 @@ pub struct Cpu {
     reg_pc: u16,
     reg_sp: u8,
     stack: [u16; 16],
-    thread_rng: ThreadRng
+    thread_rng: ThreadRng,
 }
 
 pub struct ProgramChange {
@@ -51,37 +51,37 @@ impl Cpu {
         println!("{:#X?} - {:#X?}: {:x?}", self.reg_pc, instruction, opcode);
         // pause();
         let program_counter = match opcode {
-            Opcode::CALL { addr } => {
+            Opcode::Call { addr } => {
                 program_change.redraw = true;
                 self.call_addr(addr)
             }
-            Opcode::CLS => self.cls(display),
-            Opcode::RET => self.ret(),
-            Opcode::JP { addr } => self.jp_addr(addr),
-            Opcode::SE { x, byte } => self.se_vx_byte(x, byte),
-            Opcode::SNE { x, byte } => self.sne_vx_byte(x, byte),
-            Opcode::LD_IMM { x, byte } => self.ld_vx_byte(x, byte),
-            Opcode::ADD_IMM { x, byte } => self.add_vx_byte(x, byte),
-            Opcode::ADD_R { x, y } => self.add_vx_vy(x, y),
-            Opcode::SUB_R { x, y } => self.sub_vx_vy(x,y),
-            Opcode::LD_R { x, y } => self.ld_vx_vy(x, y),
-            Opcode::LDI_IMM { addr } => self.ld_i_addr(addr),
-            Opcode::DRW { x, y, size } => {
+            Opcode::Cls => self.cls(display),
+            Opcode::Ret => self.ret(),
+            Opcode::Jp { addr } => self.jp_addr(addr),
+            Opcode::Se { x, byte } => self.se_vx_byte(x, byte),
+            Opcode::Sne { x, byte } => self.sne_vx_byte(x, byte),
+            Opcode::LdImm { x, byte } => self.ld_vx_byte(x, byte),
+            Opcode::AddImm { x, byte } => self.add_vx_byte(x, byte),
+            Opcode::AddR { x, y } => self.add_vx_vy(x, y),
+            Opcode::SubR { x, y } => self.sub_vx_vy(x, y),
+            Opcode::LdR { x, y } => self.ld_vx_vy(x, y),
+            Opcode::LdiImm { addr } => self.ld_i_addr(addr),
+            Opcode::Drw { x, y, size } => {
                 program_change.redraw = true;
                 self.drw_vx_vy_nibble(x, y, size, memory, display)
             }
-            Opcode::SKNP { x } => self.sknp_vx(x, keyboard_state),
-            Opcode::SKP { x } => self.skp_vx(x, keyboard_state),
-            Opcode::ADDI_R { x } => self.add_i_vx(x),
-            Opcode::LD_M { x } => self.ld_vx_i(x, memory),
-            Opcode::SET_DT { x } => self.set_dt(x),
-            Opcode::SET_ST { x } => self.set_st(x),
-            Opcode::LD_DT { x } => self.ld_dt(x),
-            Opcode::AND { x, y } => self.and(x, y),
-            Opcode::SHR { x } => self.shr(x),
-            Opcode::XOR_R { x, y } => self.xor_vx_vy(x, y),
-            Opcode::LD_R_K { x } => self.ld_vx_k(x, keyboard_state),
-            Opcode::RND { x, byte } => self.rnd_vx_byte(x, byte),
+            Opcode::Sknp { x } => self.sknp_vx(x, keyboard_state),
+            Opcode::Skp { x } => self.skp_vx(x, keyboard_state),
+            Opcode::AddiR { x } => self.add_i_vx(x),
+            Opcode::LdM { x } => self.ld_vx_i(x, memory),
+            Opcode::SetDt { x } => self.set_dt(x),
+            Opcode::SetSt { x } => self.set_st(x),
+            Opcode::LdDt { x } => self.ld_dt(x),
+            Opcode::And { x, y } => self.and(x, y),
+            Opcode::Shr { x } => self.shr(x),
+            Opcode::XorR { x, y } => self.xor_vx_vy(x, y),
+            Opcode::LdRK { x } => self.ld_vx_k(x, keyboard_state),
+            Opcode::Rnd { x, byte } => self.rnd_vx_byte(x, byte),
             _ => panic!("Instruction: {:#X?} - not handled", instruction),
         };
 

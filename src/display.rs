@@ -36,24 +36,4 @@ impl Display {
             }
         }
     }
-
-    pub fn draw_to_frame(&self, frame: &mut [u8], scale_factor: usize) {
-        for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
-            let x = i % 64;
-            let y = i / 64;
-
-            let downscaled_y = y / scale_factor;
-            let downscaled_x = x / scale_factor;
-            let source = self.framebuffer[downscaled_y * 64 + downscaled_x];
-            
-            let rgba = [
-                (source >> 24 & 0xF) as u8, // R
-                (source >> 16 & 0xF) as u8, // G
-                (source >> 8 & 0xF) as u8,  // B
-                (source & 0xF) as u8,       // A
-            ];
-
-            pixel.copy_from_slice(&rgba);
-        }
-    }
 }
